@@ -1,0 +1,5 @@
+.vs/
+Debug/
+*.vcxproj.user
+App/Enclave_u.*
+Enclave/Enclave_t.*
