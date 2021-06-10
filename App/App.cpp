@@ -42,7 +42,7 @@ int initialize_enclave()
      * Step 1: Obtain enclave launch token                          *
      *==============================================================*/
 
-     /* If exist, load the enclave launch token */
+    /* If exist, load the enclave launch token */
     FILE *fp = fopen(TOKEN_FILENAME, "rb");
 
     /* If token doesn't exist, create the token */
@@ -101,7 +101,7 @@ int initialize_enclave()
      * Step 3: Save the launch token if it is updated               *
      *==============================================================*/
 
-     /* If there is no update with token, skip save */
+    /* If there is no update with token, skip save */
     if (updated == 0 || fp == NULL)
     {
         if (fp != NULL)
