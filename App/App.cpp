@@ -1,9 +1,14 @@
-#define _CRT_SECURE_NO_WARNINGS
+#if defined(_MSC_VER)
+# define _CRT_SECURE_NO_WARNINGS
+# define TOKEN_FILENAME   "Enclave.token"
+# define ENCLAVE_FILENAME "Enclave.signed.dll"
+#elif defined(__GNUC__)
+# define TOKEN_FILENAME   "enclave.token"
+# define ENCLAVE_FILENAME "enclave.signed.so"
+#endif
 
-#include <cstdio>
-#include <cstring>
-#include <string>
-#include <iostream>
+
+
 #include "Enclave_u.h"
 #include <sgx_urts.h>
 #include "error_print.h"
@@ -28,30 +33,26 @@ void ocall_print(const char* str)
 /* Enclave initialization function */
 int initialize_enclave()
 {
-    std::string launch_token_path = "enclave.token";
-    std::string enclave_name = "Enclave.signed.dll";
-    const char* token_path = launch_token_path.c_str();
-
     sgx_launch_token_t token = { 0 };
     sgx_status_t status = SGX_ERROR_UNEXPECTED;
     int updated = 0;
 
 
     /*==============================================================*
-    * Step 1: Obtain enclave launch token                          *
-    *==============================================================*/
+     * Step 1: Obtain enclave launch token                          *
+     *==============================================================*/
 
-    /* If exist, load the enclave launch token */
-    FILE *fp = fopen(token_path, "rb");
+     /* If exist, load the enclave launch token */
+    FILE *fp = fopen(TOKEN_FILENAME, "rb");
 
     /* If token doesn't exist, create the token */
-    if (fp == NULL && (fp = fopen(token_path, "wb")) == NULL)
+    if (fp == NULL && (fp = fopen(TOKEN_FILENAME, "wb")) == NULL)
     {
         /* Storing token is not necessary, so file I/O errors here
-        * is not fatal
-        */
+         * is not fatal
+         */
         std::cerr << "Warning: Failed to create/open the launch token file ";
-        std::cerr << "\"" << launch_token_path << "\"." << std::endl;
+        std::cerr << "\"" << TOKEN_FILENAME << "\"." << std::endl;
     }
 
 
@@ -66,20 +67,20 @@ int initialize_enclave()
             memset(&token, 0x0, sizeof(sgx_launch_token_t));
 
             /* As aforementioned, if token doesn't exist or is corrupted,
-            * zero-flushed new token will be used for launch.
-            * So token error is not fatal.
-            */
+             * zero-flushed new token will be used for launch.
+             * So token error is not fatal.
+             */
             std::cerr << "Warning: Invalid launch token read from ";
-            std::cerr << "\"" << launch_token_path << "\"." << std::endl;
+            std::cerr << "\"" << TOKEN_FILENAME << "\"." << std::endl;
         }
     }
 
 
     /*==============================================================*
-    * Step 2: Initialize enclave by calling sgx_create_enclave     *
-    *==============================================================*/
+     * Step 2: Initialize enclave by calling sgx_create_enclave     *
+     *==============================================================*/
 
-    status = sgx_create_enclave(enclave_name.c_str(), SGX_DEBUG_FLAG, &token,
+    status = sgx_create_enclave(ENCLAVE_FILENAME, SGX_DEBUG_FLAG, &token,
         &updated, &global_eid, NULL);
 
     if (status != SGX_SUCCESS)
@@ -97,10 +98,10 @@ int initialize_enclave()
 
 
     /*==============================================================*
-    * Step 3: Save the launch token if it is updated               *
-    *==============================================================*/
+     * Step 3: Save the launch token if it is updated               *
+     *==============================================================*/
 
-    /* If there is no update with token, skip save */
+     /* If there is no update with token, skip save */
     if (updated == 0 || fp == NULL)
     {
         if (fp != NULL)
@@ -113,7 +114,7 @@ int initialize_enclave()
 
 
     /* reopen with write mode and save token */
-    fp = freopen(token_path, "wb", fp);
+    fp = freopen(TOKEN_FILENAME, "wb", fp);
     if (fp == NULL) return 0;
 
     size_t write_num = fwrite(token, 1, sizeof(sgx_launch_token_t), fp);
@@ -121,14 +122,13 @@ int initialize_enclave()
     if (write_num != sizeof(sgx_launch_token_t))
     {
         std::cerr << "Warning: Failed to save launch token to ";
-        std::cerr << "\"" << launch_token_path << "\"." << std::endl;
+        std::cerr << "\"" << TOKEN_FILENAME << "\"." << std::endl;
     }
 
     fclose(fp);
 
     return 0;
 }
-
 
 
 
